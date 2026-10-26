@@ -13,7 +13,7 @@ export default function home(app) {
       h('section', { class: 'hero' },
         h('div', { class: 'hero-copy' },
           h('h1', {}, 'Study like it\'s a ', h('span', { class: 'hl' }, 'game'), '.'),
-          h('p', {}, 'Make or paste any quiz. Answer questions to fill your game meter, and every few seconds you unlock a mini-game. Get it wrong and it comes back until you actually know it.')),
+          h('p', {}, 'Make or paste any quiz. Every 10 right answers unlocks a real arcade game: brawlers, runners, breakout and more. Get one wrong and it keeps coming back until you actually know it.')),
         h('div', { class: 'hero-actions' },
           h('button', { class: 'btn big yellow', onclick: () => go('editor') }, icon('plus'), 'Create a quiz'),
           h('button', { class: 'btn big ghost-light', onclick: openImport }, icon('upload'), 'Import'))),
@@ -157,6 +157,7 @@ export function importFromHash() {
 
 export function openPlaySetup(set) {
   const opts = Object.assign({ goal: 300, mode: 'mixed', every: 10, both: false }, S.lastOpts || {});
+  if (![5, 10, 15].includes(opts.every)) opts.every = 10;
   const termSet = set.cards.filter(c => !/\?\s*$/.test(c.q)).length > set.cards.length / 2;
   const m = modal(h('div', { class: 'setup' },
     h('div', { class: `setup-head c-${set.color}` }, h('small', {}, 'Get ready'), h('h2', {}, set.title)),
@@ -169,9 +170,9 @@ export function openPlaySetup(set) {
       { value: 'mc', label: 'Multiple choice' }, { value: 'mixed', label: 'Mixed' }, { value: 'type', label: 'Type it' },
     ], opts.mode, v => (opts.mode = v)),
     h('p', { class: 'hint' }, 'Mixed starts with choices, then makes you type answers once you know them. Typing from memory is what makes it stick.'),
-    h('label', { class: 'label' }, 'Mini-game every'),
+    h('label', { class: 'label' }, 'Game unlocks every'),
     segmented([
-      { value: 10, label: '10 sec' }, { value: 20, label: '20 sec' }, { value: 30, label: '30 sec' },
+      { value: 5, label: '5 right' }, { value: 10, label: '10 right' }, { value: 15, label: '15 right' },
     ], opts.every, v => (opts.every = v)),
     termSet ? h('label', { class: 'check' },
       h('input', { type: 'checkbox', checked: opts.both, onchange: e => (opts.both = e.target.checked) }),
@@ -189,7 +190,7 @@ function howItWorks() {
   return h('section', { class: 'how' },
     h('h2', {}, 'How Brainrush helps it stick'),
     h('div', { class: 'how-grid' },
-      step(1, 'Answer to unlock games', 'Your game meter fills as you play. When it\'s full, your next right answer launches a mini-game.'),
+      step(1, 'Answer to unlock games', 'Every 10 right answers unlocks game time. Pick from 6 arcade games and play for big gold.'),
       step(2, 'Misses come right back', 'Get one wrong and you see the answer and why, then it returns a couple of questions later until you nail it.'),
       step(3, 'Recall, not recognition', 'Once you know a card, Brainrush stops showing choices and makes you type it from memory.'),
       step(4, 'Spaced out over time', 'Cards you know show up less and less. Cards you struggle with keep showing up.')));

@@ -31,7 +31,7 @@ export default function results(app, r) {
         tile('Accuracy', acc + '%', 'target'),
         tile('Answered', r.answered, 'check'),
         tile('Best streak', r.bestStreak, 'flame'),
-        tile('Mini-games', r.games, 'game')),
+        tile('Games played', r.games, 'game')),
       h('section', { class: 'rewards' },
         h('div', { class: 'reward' }, coin('lg'), h('b', {}, `+${r.tokens}`), ' tokens'),
         h('div', { class: 'reward' }, icon('star'), h('b', {}, `+${r.xp}`), ' XP'),

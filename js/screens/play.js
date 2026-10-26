@@ -1,7 +1,7 @@
 import { h, icon, coin, fmt, sleep, confirmBox } from '../ui.js';
 import { S, save, getSet, cardProgress, MASTERED_BOX, touchDay, levelInfo } from '../store.js';
 import { Session, checkTyped } from '../engine.js';
-import { playMinigame } from '../games/index.js';
+import { gameTime } from '../games/index.js';
 import { sfx } from '../sound.js';
 import { confetti, floatText, centerOf } from '../fx.js';
 import { avatarSVG } from '../avatars.js';
@@ -25,7 +25,8 @@ export default function play(app, { id, opts }) {
   }
   const session = new Session(set, progress, opts);
   const lv = { value: 0, streak: 0, mult: 0 };
-  const st = { gold: 0, shownGold: 0, streak: 0, bestStreak: 0, answered: 0, correct: 0, games: 0, elapsed: 0, meter: 0, phase: 'question', ready: false, over: false };
+  const every = [5, 10, 15].includes(opts.every) ? opts.every : 10;
+  const st = { gold: 0, shownGold: 0, streak: 0, bestStreak: 0, answered: 0, correct: 0, games: 0, elapsed: 0, sinceGame: 0, phase: 'question', over: false };
   const unit = () => UPGRADES.value.vals[lv.value] * UPGRADES.mult.vals[lv.mult];
   const perAnswer = () => unit() + UPGRADES.streak.vals[lv.streak] * Math.min(st.streak, 10) * UPGRADES.mult.vals[lv.mult];
 
@@ -36,7 +37,7 @@ export default function play(app, { id, opts }) {
   const streakNum = h('span', { class: 'hud-streak-num' }, '0');
   const streakBox = h('div', { class: 'hud-streak', title: 'Answer streak' }, icon('flame'), streakNum);
   const meterFill = h('div', { class: 'meter-fill' });
-  const meterLabel = h('span', { class: 'meter-label' }, 'Game meter');
+  const meterLabel = h('span', { class: 'meter-label' }, `0/${every} right answers to GAME TIME`);
   const meter = h('div', { class: 'meter' }, h('div', { class: 'meter-track' }, meterFill), h('div', { class: 'meter-icon' }, icon('game')), meterLabel);
   const hud = h('div', { class: 'hud' },
     h('div', { class: 'hud-row' },
@@ -83,15 +84,7 @@ export default function play(app, { id, opts }) {
     last = now;
     if ((st.phase === 'question' || st.phase === 'feedback') && !document.hidden) {
       st.elapsed += dt;
-      st.meter = Math.min(1, st.meter + dt / opts.every);
-      if (st.meter >= 1 && !st.ready) {
-        st.ready = true;
-        meter.classList.add('ready');
-        meterLabel.textContent = 'Next right answer = GAME!';
-        sfx('ready');
-      }
     }
-    meterFill.style.transform = `scaleX(${st.meter})`;
     if (goal === 'mastery') {
       const learned = set.cards.filter(c => session.box(c) >= MASTERED_BOX).length;
       clock.textContent = `${learned}/${set.cards.length} learned`;
@@ -174,13 +167,15 @@ export default function play(app, { id, opts }) {
     else await onWrong(q, response, el, btns);
     save();
     busy = false;
-    if (res.correct && st.ready && !st.over) await runGame();
+    if (st.sinceGame >= every && !st.over) await runGame();
     nextQuestion();
   }
 
   async function onCorrect(q, res, el, btns) {
     st.correct++;
     S.stats.correct++;
+    st.sinceGame++;
+    updateMeter(true);
     st.streak++;
     st.bestStreak = Math.max(st.bestStreak, st.streak);
     const earned = perAnswer();
@@ -245,16 +240,24 @@ export default function play(app, { id, opts }) {
     });
   }
 
+  function updateMeter(bump) {
+    const n = Math.min(st.sinceGame, every);
+    meterFill.style.transform = `scaleX(${n / every})`;
+    const ready = n >= every;
+    meter.classList.toggle('ready', ready);
+    meterLabel.textContent = ready ? 'GAME UNLOCKED!' : `${n}/${every} right answers to GAME TIME`;
+    if (bump) { meter.classList.remove('tick'); void meter.offsetWidth; meter.classList.add('tick'); }
+    if (ready && bump) sfx('ready');
+  }
+
   async function runGame() {
     st.phase = 'game';
     st.games++;
     S.stats.games++;
-    const res = await playMinigame({ unit: unit(), sessionGold: st.gold, avatar: S.avatar });
+    const res = await gameTime({ unit: unit(), avatar: S.avatar });
     st.gold += res.gold;
-    st.meter = 0;
-    st.ready = false;
-    meter.classList.remove('ready');
-    meterLabel.textContent = 'Game meter';
+    st.sinceGame = 0;
+    updateMeter();
     last = performance.now();
   }
 
@@ -271,8 +274,8 @@ export default function play(app, { id, opts }) {
     st.over = true;
     cancelAnimationFrame(raf);
     const mastered = [...session.newlyMastered];
-    const tokens = st.correct * 2 + st.games * 3 + mastered.length * 10 + (st.answered >= 10 ? 15 : 0);
-    const xp = st.correct * 10 + st.games * 5 + mastered.length * 20;
+    const tokens = st.correct * 2 + st.games * 10 + mastered.length * 10 + (st.answered >= 10 ? 15 : 0);
+    const xp = st.correct * 10 + st.games * 25 + mastered.length * 20;
     const levelBefore = levelInfo().level;
     S.tokens += tokens;
     S.xp += xp;

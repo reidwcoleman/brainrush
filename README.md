@@ -2,7 +2,7 @@
 
 Study any quiz like it's a game. Live at **https://reidwcoleman.github.io/brainrush/**
 
-Make or paste a quiz (like Blooket or Gimkit), then play it. Answering questions fills a game meter. When it's full (every 10 seconds by default), your next right answer launches a quick mini-game. You still have to keep answering to get the next one.
+Make or paste a quiz (like Blooket or Gimkit), then play it. Every 10 right answers unlocks **game time**: pick one of three arcade games and play it for big gold. Then it's back to the questions to earn the next one.
 
 ## Built so you actually learn it
 
@@ -12,9 +12,16 @@ Make or paste a quiz (like Blooket or Gimkit), then play it. Answering questions
 - **Lock it in.** Miss a typed answer and you retype the correct one before moving on.
 - **Review at the end.** The results screen lists everything you missed, with answers and explanations.
 
-## Mini-games
+## Games
 
-Treasure Pick, Balloon Pop, Stack Attack, Bonk-a-Blip, Lucky Reels, Coin Catch and Quick Draw. Each one lasts about 5 to 12 seconds and pays out in gold that scales with your upgrades.
+Each game runs 40 to 60 seconds and pays out gold that scales with your upgrades. Personal bests are saved per game.
+
+- **Blip Brawl**: survive a monster swarm (auto-aim), collect gems to level up, pick powers (multishot, orbiters, shockwave...), beat the boss
+- **Sky Hop**: bounce upward forever with springs, jetpacks, crumbling platforms and monsters to stomp
+- **Brick Blitz**: breakout with TNT bricks, gold bricks, combos and power-ups (multiball, fireball, lasers, wide paddle)
+- **Lane Rush**: a 3-lane runner where you dodge walls, jump hurdles, and grab coin magnets and x2 coins
+- **Slice Frenzy**: swipe fruit, chain combos, avoid bombs; golden, freeze and frenzy fruit
+- **Snake Arena**: eat orbs, boost, and make rival snakes crash into you
 
 ## Progression
 
@@ -42,4 +49,4 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Add `?mg=balloons` (or `chest`, `stack`, `whack`, `slots`, `catcher`, `quickdraw`) to the URL to jump straight into one mini-game.
+Add `?game=brawl` (or `skyhop`, `bricks`, `lanes`, `slice`, `snake`) to the URL to jump straight into one game, or `?game=pick` for the picker.

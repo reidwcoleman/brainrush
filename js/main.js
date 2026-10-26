@@ -5,6 +5,7 @@ import play from './screens/play.js';
 import results from './screens/results.js';
 import shop from './screens/shop.js';
 import { importFromHash } from './screens/home.js';
+import { S } from './store.js';
 
 register('home', home);
 register('editor', editor);
@@ -16,6 +17,6 @@ go('home');
 importFromHash();
 addEventListener('hashchange', importFromHash);
 
-// ?mg=<game id> jumps straight into one mini-game (handy for testing them).
-const mg = new URLSearchParams(location.search).get('mg');
-if (mg) import('./games/index.js').then(m => m.playMinigame({ unit: 10, sessionGold: 500, avatar: 'sunny', forceId: mg }));
+// ?game=<id> jumps straight into one game (handy for testing); ?game=pick opens the picker.
+const gm = new URLSearchParams(location.search).get('game');
+if (gm) import('./games/index.js').then(m => m.gameTime({ unit: 10, avatar: S.avatar, forceId: gm === 'pick' ? null : gm }));

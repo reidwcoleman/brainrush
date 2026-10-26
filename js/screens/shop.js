@@ -17,7 +17,7 @@ export default function shop(app) {
       topbar({ back: () => go('home') }),
       h('main', { class: 'wrap shop' },
         h('h1', { class: 'page-title' }, 'Blip Shop'),
-        h('p', { class: 'muted' }, 'Earn tokens by answering questions, playing mini-games and learning cards. Spend them on mystery boxes to collect Blips.'),
+        h('p', { class: 'muted' }, 'Earn tokens by answering questions, playing games and learning cards. Spend them on mystery boxes to collect Blips.'),
         h('div', { class: 'box-row' }, BOXES.map(b => {
           const can = S.tokens >= b.cost;
           return h('div', { class: `box-card tone-${b.color}` },
