@@ -1,6 +1,6 @@
 import { h, icon, toast, modal, confirmBox, segmented, fmt } from '../ui.js';
 import { S, save, mastery, deleteSet, upsertSet, normalizeSet } from '../store.js';
-import { shareLink, decodeSet } from '../parse.js';
+import { shareLink, decodeSet, parseImport } from '../parse.js';
 import { go } from '../router.js';
 import { sfx } from '../sound.js';
 import { topbar } from './topbar.js';
@@ -13,7 +13,7 @@ export default function home(app) {
       h('section', { class: 'hero' },
         h('div', { class: 'hero-copy' },
           h('h1', {}, 'Study like it\'s a ', h('span', { class: 'hl' }, 'game'), '.'),
-          h('p', {}, 'Make or paste any quiz. Every 10 right answers unlocks a real arcade game: brawlers, runners, breakout and more. Get one wrong and it keeps coming back until you actually know it.')),
+          h('p', {}, 'Make or paste any quiz. Every 10 right answers unlocks a game: Slice Frenzy, Quick Draw or Snake Arena. Get one wrong and it keeps coming back until you actually know it.')),
         h('div', { class: 'hero-actions' },
           h('button', { class: 'btn big yellow', onclick: () => go('editor') }, icon('plus'), 'Create a quiz'),
           h('button', { class: 'btn big ghost-light', onclick: openImport }, icon('upload'), 'Import'))),
@@ -96,10 +96,11 @@ function exportSet(set) {
 
 function openImport() {
   const linkInput = h('input', { class: 'input', placeholder: 'Paste a Brainrush share link' });
-  const file = h('input', { type: 'file', accept: '.json,application/json', class: 'hidden' });
+  const file = h('input', { type: 'file', accept: '.json,.txt,.csv,.tsv,application/json,text/plain,text/csv', multiple: true, class: 'hidden' });
+  const pasted = h('textarea', { class: 'input mono', rows: 5, placeholder: 'Or paste quiz JSON (or a CSV / term list) here' });
   const m = modal(h('div', {},
     h('h2', { class: 'modal-title' }, 'Import a quiz'),
-    h('p', { class: 'muted' }, 'Got a share link or a downloaded quiz file? Bring it in here. To paste a list of terms (from Quizlet, a doc or a spreadsheet), use Create a quiz and the Paste tab.'),
+    h('p', { class: 'muted' }, 'Bring in a share link, a quiz file (.json, .csv or .txt), or paste JSON from anywhere, including quizzes made by ChatGPT, Kahoot-style files and term lists.'),
     h('label', { class: 'label' }, 'Share link'),
     h('div', { class: 'row gap' }, linkInput, h('button', { class: 'btn blue', onclick: async () => {
       const i = linkInput.value.indexOf('#set=');
@@ -107,21 +108,36 @@ function openImport() {
       m.close();
       await importCode(linkInput.value.slice(i + 5));
     } }, 'Import')),
-    h('label', { class: 'label' }, 'Quiz file (.json)'),
+    h('label', { class: 'label' }, 'Quiz file'),
     h('button', { class: 'btn ghost', onclick: () => file.click() }, icon('upload'), 'Choose file'),
-    file));
+    file,
+    h('label', { class: 'label' }, 'Paste'),
+    pasted,
+    h('div', { class: 'row end' }, h('button', { class: 'btn green', onclick: () => {
+      if (addImported(parseImport(pasted.value, 'Imported quiz'))) m.close();
+    } }, icon('plus'), 'Import pasted text'))));
   file.addEventListener('change', async () => {
-    try {
-      const data = JSON.parse(await file.files[0].text());
-      const list = Array.isArray(data) ? data : [data];
-      list.forEach(s => upsertSet(normalizeSet({ ...s, id: null })));
-      m.close();
-      toast(`Imported ${list.length === 1 ? `"${list[0].title}"` : list.length + ' quizzes'}`);
-      go('home');
-    } catch {
-      toast('Could not read that file', 'bad');
+    const sets = [];
+    for (const f of file.files) {
+      try { sets.push(...parseImport(await f.text(), f.name.replace(/\.(brainrush\.)?(json|txt|csv|tsv)$/i, '') || 'Imported quiz')); }
+      catch { /* skip unreadable files */ }
     }
+    file.value = '';
+    if (addImported(sets)) m.close();
   });
+}
+
+// Saves parsed sets and reports what happened. Returns true if anything was added.
+function addImported(sets) {
+  if (!sets.length) {
+    toast('Couldn\'t find any questions in that. It needs a question and an answer for each item.', 'bad');
+    return false;
+  }
+  sets.forEach(s => upsertSet(normalizeSet({ ...s, id: null })));
+  const n = sets.reduce((t, s) => t + s.cards.length, 0);
+  toast(sets.length === 1 ? `Imported "${sets[0].title}" (${n} questions)` : `Imported ${sets.length} quizzes (${n} questions)`);
+  go('home');
+  return true;
 }
 
 async function importCode(code) {
@@ -190,7 +206,7 @@ function howItWorks() {
   return h('section', { class: 'how' },
     h('h2', {}, 'How Brainrush helps it stick'),
     h('div', { class: 'how-grid' },
-      step(1, 'Answer to unlock games', 'Every 10 right answers unlocks game time. Pick from 6 arcade games and play for big gold.'),
+      step(1, 'Answer to unlock games', 'Every 10 right answers unlocks game time. Pick Slice Frenzy, Quick Draw or Snake Arena and play for big gold.'),
       step(2, 'Misses come right back', 'Get one wrong and you see the answer and why, then it returns a couple of questions later until you nail it.'),
       step(3, 'Recall, not recognition', 'Once you know a card, Brainrush stops showing choices and makes you type it from memory.'),
       step(4, 'Spaced out over time', 'Cards you know show up less and less. Cards you struggle with keep showing up.')));

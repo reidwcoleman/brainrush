@@ -1,21 +1,17 @@
 // Game time: pick one of three arcade games, play it, cash out.
 // Games earn "units"; one unit is worth whatever a correct answer is worth right now,
 // so payouts keep up as you buy upgrades.
-import { h, sleep, fmt, coin, shuffle } from '../ui.js';
+import { h, sleep, fmt, coin } from '../ui.js';
 import { S, save } from '../store.js';
 import { sfx } from '../sound.js';
 import { confetti } from '../fx.js';
 import { avatarSVG } from '../avatars.js';
 import { isTouch } from './kit.js';
-import brawl from './brawl.js';
-import skyhop from './skyhop.js';
-import bricks from './bricks.js';
-import lanes from './lanes.js';
 import slice from './slice.js';
+import quickdraw from './quickdraw.js';
 import snake from './snake.js';
 
-export const GAMES = [brawl, skyhop, bricks, lanes, slice, snake];
-let lastPlayed = null;
+export const GAMES = [slice, quickdraw, snake];
 
 export async function gameTime({ unit, avatar, forceId }) {
   const overlay = h('div', { class: 'mg-overlay' });
@@ -23,7 +19,6 @@ export async function gameTime({ unit, avatar, forceId }) {
   sfx('ready');
 
   const game = forceId ? GAMES.find(g => g.id === forceId) : await pickGame(overlay);
-  lastPlayed = game.id;
   const result = await playGame(overlay, game, { unit, avatar });
   overlay.classList.add('out');
   await sleep(220);
@@ -33,7 +28,7 @@ export async function gameTime({ unit, avatar, forceId }) {
 
 function pickGame(overlay) {
   return new Promise(resolve => {
-    const options = shuffle(GAMES.filter(g => g.id !== lastPlayed)).slice(0, 3);
+    const options = GAMES;
     const best = S.gameBest || {};
     const cards = options.map((g, i) => h('button', {
       class: `pick-card tone-${g.color}`, style: { animationDelay: `${0.15 + i * 0.1}s` },

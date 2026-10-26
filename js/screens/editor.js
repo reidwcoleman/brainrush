@@ -1,6 +1,6 @@
 import { h, icon, toast, uid, confirmBox } from '../ui.js';
 import { getSet, upsertSet, normalizeSet } from '../store.js';
-import { parseBulk } from '../parse.js';
+import { parseBulk, parseImport } from '../parse.js';
 import { go } from '../router.js';
 import { topbar } from './topbar.js';
 
@@ -60,19 +60,21 @@ export default function editor(app, { id } = {}) {
   // Paste-a-list panel
   const bulk = h('textarea', { class: 'input mono', rows: 10, placeholder: 'Mitochondria - makes ATP for the cell\nNucleus - stores the DNA\nRibosome - builds proteins\n\nor with choices:\nCapital of Australia? | Canberra | Sydney | Melbourne | Perth | Built as a compromise city' });
   const found = h('span', { class: 'muted' }, 'Paste something above');
+  const parsePasted = text => (/^\s*[[{]/.test(text) ? parseImport(text).flatMap(x => x.cards) : parseBulk(text));
   bulk.addEventListener('input', () => {
-    const n = parseBulk(bulk.value).length;
+    const n = parsePasted(bulk.value).length;
     found.textContent = n ? `${n} question${n === 1 ? '' : 's'} found` : 'No questions found yet';
   });
   const pastePanel = h('div', { class: 'paste-panel hidden' },
     h('p', { class: 'muted' }, 'One question per line. Copy straight out of Quizlet (export), Google Sheets, or your notes.'),
     h('ul', { class: 'formats' },
       h('li', {}, h('code', {}, 'term - definition'), ' or ', h('code', {}, 'term: definition'), ' or tab-separated'),
-      h('li', {}, h('code', {}, 'question | answer | wrong 1 | wrong 2 | wrong 3 | explanation'))),
+      h('li', {}, h('code', {}, 'question | answer | wrong 1 | wrong 2 | wrong 3 | explanation')),
+      h('li', {}, 'or paste quiz JSON (from ChatGPT, a download, etc.)')),
     bulk,
     h('div', { class: 'row between' }, found,
       h('button', { class: 'btn blue', type: 'button', onclick: () => {
-        const cards = parseBulk(bulk.value);
+        const cards = parsePasted(bulk.value);
         if (!cards.length) return toast('No questions found. Use one per line like "term - definition".', 'bad');
         set.cards = set.cards.filter(c => c.q.trim() || c.a.trim()).concat(cards.map(c => ({ id: uid(), ...c })));
         bulk.value = '';

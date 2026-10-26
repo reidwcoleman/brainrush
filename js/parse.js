@@ -66,3 +66,105 @@ export async function shareLink(set) {
   const base = location.href.split('#')[0];
   return `${base}#set=${await encodeSet(set)}`;
 }
+
+// ---------- importing quiz files ----------
+// Understands Brainrush exports plus the usual shapes other tools (and AI chatbots)
+// produce: arrays of questions, { questions: [...] }, term/definition pairs,
+// multiple-choice options with the answer as text, letter or index, and
+// Kahoot-style choices with a `correct` flag.
+
+const pickKey = (o, keys) => {
+  for (const k of Object.keys(o)) if (keys.includes(k.toLowerCase().replace(/[\s_-]/g, ''))) return o[k];
+  return undefined;
+};
+const Q_KEYS = ['q', 'question', 'questiontext', 'term', 'prompt', 'front', 'word', 'text', 'title', 'stem', 'ask', 'clue'];
+const A_KEYS = ['a', 'answer', 'answers', 'definition', 'back', 'correct', 'correctanswer', 'correctanswers', 'right', 'rightanswer', 'solution', 'meaning', 'answertext', 'correctoption', 'correctchoice', 'key'];
+const OPT_KEYS = ['options', 'choices', 'answers', 'alternatives', 'possibleanswers', 'answeroptions', 'opts', 'responses'];
+const WRONG_KEYS = ['wrong', 'incorrect', 'incorrectanswers', 'wronganswers', 'distractors', 'falseanswers'];
+const EXPLAIN_KEYS = ['explain', 'explanation', 'reason', 'why', 'rationale', 'hint', 'feedback', 'note', 'notes'];
+const LIST_KEYS = ['cards', 'questions', 'items', 'quiz', 'terms', 'flashcards', 'data', 'entries', 'list', 'set', 'deck', 'problems'];
+const TITLE_KEYS = ['title', 'name', 'quiztitle', 'setname', 'topic', 'subject'];
+
+const str = v => (v == null ? '' : typeof v === 'object' ? String(v.text ?? v.answer ?? v.value ?? v.label ?? v.option ?? '') : String(v)).trim();
+
+function optionText(o) {
+  if (o && typeof o === 'object') return str(o);
+  return str(o);
+}
+
+function toCard(raw) {
+  if (Array.isArray(raw)) {
+    const [q, a, ...rest] = raw.map(str);
+    return q && a ? { q, a, wrong: rest.slice(0, 3), explain: '' } : null;
+  }
+  if (!raw || typeof raw !== 'object') return null;
+  let q = str(pickKey(raw, Q_KEYS));
+  let a = pickKey(raw, A_KEYS);
+  let opts = pickKey(raw, OPT_KEYS);
+  if (opts && !Array.isArray(opts) && typeof opts === 'object') opts = Object.entries(opts).map(([k, v]) => ({ key: k, text: str(v) }));
+  if (!Array.isArray(opts) || (Array.isArray(a) && opts === a)) opts = null;
+  let answer = '';
+  const optList = opts ? opts.map(o => (o && typeof o === 'object' && 'key' in o ? o.text : optionText(o))) : [];
+
+  if (opts) {
+    // Kahoot-style: choices carry a correct flag.
+    const flagged = opts.findIndex(o => o && typeof o === 'object' && (o.correct === true || o.isCorrect === true || o.is_correct === true || o.right === true));
+    if (flagged >= 0) answer = optList[flagged];
+  }
+  if (!answer && a != null) {
+    if (Array.isArray(a)) a = a[0];
+    if (typeof a === 'number' && opts) answer = optList[a] ?? optList[a - 1] ?? '';
+    else {
+      const s = str(a);
+      const letter = s.match(/^\(?([A-Ha-h])[).:]?$/);
+      const keyed = opts && opts.find(o => o && typeof o === 'object' && 'key' in o && o.key.toLowerCase() === s.toLowerCase());
+      if (keyed) answer = keyed.text;
+      else if (letter && optList.length) answer = optList[letter[1].toLowerCase().charCodeAt(0) - 97] || s;
+      else if (/^\d+$/.test(s) && optList.length && !optList.includes(s)) answer = optList[+s] ?? optList[+s - 1] ?? s;
+      else answer = s;
+    }
+  }
+  // Options sometimes come prefixed like "A) Paris"; strip that for display.
+  const clean = t => t.replace(/^\(?[A-Ha-h][).:]\s+/, '').trim();
+  answer = clean(answer);
+  let wrong = optList.map(clean).filter(t => t && t.toLowerCase() !== answer.toLowerCase());
+  const extra = pickKey(raw, WRONG_KEYS);
+  if (Array.isArray(extra)) wrong = wrong.concat(extra.map(str));
+  if (!q || !answer) return null;
+  return { q, a: answer, wrong: [...new Set(wrong.filter(Boolean))].slice(0, 3), explain: str(pickKey(raw, EXPLAIN_KEYS)) };
+}
+
+function toSet(obj, fallbackTitle) {
+  let list = Array.isArray(obj) ? obj : pickKey(obj, LIST_KEYS);
+  // { "France": "Paris", ... } style dictionaries.
+  if (!Array.isArray(list) && obj && typeof obj === 'object' && !Array.isArray(obj)) {
+    const vals = Object.entries(obj).filter(([, v]) => typeof v === 'string');
+    if (vals.length >= 2 && vals.length === Object.keys(obj).length) list = vals.map(([q, a]) => ({ q, a }));
+  }
+  if (list && !Array.isArray(list) && typeof list === 'object') return toSet(list, fallbackTitle);
+  // Last resort: the first property that holds a list of question objects.
+  if (!Array.isArray(list) && obj && typeof obj === 'object') {
+    list = Object.values(obj).find(v => Array.isArray(v) && v.length && v.every(x => x && typeof x === 'object'));
+  }
+  const cards = (list || []).map(toCard).filter(Boolean);
+  const title = (!Array.isArray(obj) && str(pickKey(obj, TITLE_KEYS))) || fallbackTitle;
+  return { title, desc: Array.isArray(obj) ? '' : str(obj.desc ?? obj.description ?? ''), color: obj.color, cards };
+}
+
+export function parseImport(text, fallbackTitle = 'Imported quiz') {
+  const trimmed = text.replace(/^﻿/, '').trim();
+  let data;
+  try {
+    data = JSON.parse(trimmed);
+  } catch {
+    // Not JSON: maybe it's a CSV / text list.
+    const cards = parseBulk(trimmed.replace(/^[^\n]*\b(question|term)s?\b[^\n]*\n/i, '').replace(/^"|"$/gm, '').replace(/","/g, '\t'));
+    return cards.length ? [{ title: fallbackTitle, cards }] : [];
+  }
+  // An array of sets vs. an array of questions.
+  if (Array.isArray(data) && data.length && data.every(x => x && typeof x === 'object' && !Array.isArray(x) && Array.isArray(pickKey(x, LIST_KEYS)))) {
+    return data.map((s, i) => toSet(s, `${fallbackTitle} ${i + 1}`)).filter(s => s.cards.length);
+  }
+  const set = toSet(data, fallbackTitle);
+  return set.cards.length ? [set] : [];
+}
