@@ -122,4 +122,23 @@ export function shuffle(arr) {
   }
   return a;
 }
+// Cards can carry a picture: an image link, a data: URL, or raw SVG code.
+// SVG is shown through <img>, so any scripts inside a shared quiz never run.
+export function imgSrc(img) {
+  const s = String(img || '').trim();
+  if (/^<svg[\s>]/i.test(s) || /^<\?xml/i.test(s)) return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+  if (/^(https?:\/\/|data:image\/)/i.test(s)) return s;
+  return '';
+}
+
+// Tap a picture to see it full screen.
+export function cardImg(img, cls = 'q-img') {
+  const src = imgSrc(img);
+  if (!src) return null;
+  return h('img', { class: cls, src, alt: 'Diagram for this question', loading: 'lazy', onclick: e => {
+    e.stopPropagation();
+    const m = modal(h('img', { class: 'img-zoom', src, alt: 'Diagram, enlarged', onclick: () => m.close() }), { wide: true });
+  } });
+}
+
 export const uid = () => Math.random().toString(36).slice(2, 9);

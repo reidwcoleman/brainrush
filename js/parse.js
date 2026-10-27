@@ -42,8 +42,9 @@ export async function encodeSet(set) {
     t: set.title, d: set.desc, c: set.color,
     k: set.cards.map(c => {
       const row = [c.q, c.a];
-      if (c.wrong.length || c.explain) row.push(c.wrong);
-      if (c.explain) row.push(c.explain);
+      if (c.wrong.length || c.explain || c.img) row.push(c.wrong);
+      if (c.explain || c.img) row.push(c.explain || '');
+      if (c.img) row.push(c.img);
       return row;
     }),
   };
@@ -58,7 +59,7 @@ export async function decodeSet(code) {
   const slim = JSON.parse(new TextDecoder().decode(bytes));
   return {
     title: slim.t, desc: slim.d, color: slim.c,
-    cards: (slim.k || []).map(([q, a, wrong = [], explain = '']) => ({ q, a, wrong, explain })),
+    cards: (slim.k || []).map(([q, a, wrong = [], explain = '', img]) => ({ q, a, wrong, explain, ...(img ? { img } : {}) })),
   };
 }
 
@@ -71,7 +72,8 @@ export async function shareLink(set) {
 // Understands Brainrush exports plus the usual shapes other tools (and AI chatbots)
 // produce: arrays of questions, { questions: [...] }, term/definition pairs,
 // multiple-choice options with the answer as text, letter or index, and
-// Kahoot-style choices with a `correct` flag.
+// Kahoot-style choices with a `correct` flag. An optional `img` (image link or
+// SVG code) on a question is kept and shown above it.
 
 const pickKey = (o, keys) => {
   for (const k of Object.keys(o)) if (keys.includes(k.toLowerCase().replace(/[\s_-]/g, ''))) return o[k];
@@ -79,9 +81,10 @@ const pickKey = (o, keys) => {
 };
 const Q_KEYS = ['q', 'question', 'questiontext', 'term', 'prompt', 'front', 'word', 'text', 'title', 'stem', 'ask', 'clue'];
 const A_KEYS = ['a', 'answer', 'answers', 'definition', 'back', 'correct', 'correctanswer', 'correctanswers', 'right', 'rightanswer', 'solution', 'meaning', 'answertext', 'correctoption', 'correctchoice', 'key'];
-const OPT_KEYS = ['options', 'choices', 'answers', 'alternatives', 'possibleanswers', 'answeroptions', 'opts', 'responses'];
+const OPT_KEYS = ['c', 'options', 'choices', 'answers', 'alternatives', 'possibleanswers', 'answeroptions', 'opts', 'responses'];
 const WRONG_KEYS = ['wrong', 'incorrect', 'incorrectanswers', 'wronganswers', 'distractors', 'falseanswers'];
 const EXPLAIN_KEYS = ['explain', 'explanation', 'reason', 'why', 'rationale', 'hint', 'feedback', 'note', 'notes'];
+const IMG_KEYS = ['img', 'image', 'svg', 'diagram', 'picture', 'pic', 'figure', 'imageurl', 'imagesrc', 'imgurl'];
 const LIST_KEYS = ['cards', 'questions', 'items', 'quiz', 'terms', 'flashcards', 'data', 'entries', 'list', 'set', 'deck', 'problems'];
 const TITLE_KEYS = ['title', 'name', 'quiztitle', 'setname', 'topic', 'subject'];
 
@@ -131,7 +134,10 @@ function toCard(raw) {
   const extra = pickKey(raw, WRONG_KEYS);
   if (Array.isArray(extra)) wrong = wrong.concat(extra.map(str));
   if (!q || !answer) return null;
-  return { q, a: answer, wrong: [...new Set(wrong.filter(Boolean))].slice(0, 3), explain: str(pickKey(raw, EXPLAIN_KEYS)) };
+  const card = { q, a: answer, wrong: [...new Set(wrong.filter(Boolean))].slice(0, 3), explain: str(pickKey(raw, EXPLAIN_KEYS)) };
+  const img = pickKey(raw, IMG_KEYS);
+  if (typeof img === 'string' && img.trim()) card.img = img.trim();
+  return card;
 }
 
 function toSet(obj, fallbackTitle) {

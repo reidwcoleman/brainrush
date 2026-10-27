@@ -87,7 +87,7 @@ function openMore(set) {
 }
 
 function exportSet(set) {
-  const data = JSON.stringify({ brainrush: 1, title: set.title, desc: set.desc, color: set.color, cards: set.cards.map(({ q, a, wrong, explain }) => ({ q, a, wrong, explain })) }, null, 2);
+  const data = JSON.stringify({ brainrush: 1, title: set.title, desc: set.desc, color: set.color, cards: set.cards.map(({ q, a, wrong, explain, img }) => ({ q, a, wrong, explain, ...(img ? { img } : {}) })) }, null, 2);
   const a = h('a', { href: URL.createObjectURL(new Blob([data], { type: 'application/json' })), download: set.title.replace(/[^\w\- ]+/g, '').trim() + '.brainrush.json' });
   document.body.append(a);
   a.click();

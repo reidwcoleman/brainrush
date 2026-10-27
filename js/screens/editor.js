@@ -1,4 +1,4 @@
-import { h, icon, toast, uid, confirmBox } from '../ui.js';
+import { h, icon, toast, uid, confirmBox, imgSrc } from '../ui.js';
 import { getSet, upsertSet, normalizeSet } from '../store.js';
 import { parseBulk, parseImport } from '../parse.js';
 import { go } from '../router.js';
@@ -32,7 +32,10 @@ export default function editor(app, { id } = {}) {
   };
 
   function cardRow(c, i) {
-    const extrasOpen = !!(c.wrong.some(Boolean) || c.explain);
+    const extrasOpen = !!(c.wrong.some(Boolean) || c.explain || c.img);
+    const preview = h('img', { class: 'img-preview', alt: '' });
+    const showPreview = () => { const src = imgSrc(c.img); preview.src = src; preview.classList.toggle('hidden', !src); };
+    showPreview();
     const extras = h('div', { class: `extras ${extrasOpen ? 'open' : ''}` },
       h('label', { class: 'label sm' }, 'Wrong choices (optional, otherwise we borrow other answers)'),
       h('div', { class: 'wrong-grid' }, [0, 1, 2].map(k => h('input', {
@@ -40,12 +43,15 @@ export default function editor(app, { id } = {}) {
         oninput: e => { c.wrong[k] = e.target.value; touch(); },
       }))),
       h('label', { class: 'label sm' }, 'Why is this the answer? (shown when someone gets it wrong)'),
-      h('textarea', { class: 'input sm', rows: 2, placeholder: 'A one-line explanation helps you understand, not just memorize.', value: c.explain || '', oninput: e => { c.explain = e.target.value; touch(); } }));
+      h('textarea', { class: 'input sm', rows: 2, placeholder: 'A one-line explanation helps you understand, not just memorize.', value: c.explain || '', oninput: e => { c.explain = e.target.value; touch(); } }),
+      h('label', { class: 'label sm' }, 'Picture or diagram (optional: an image link, or paste SVG code)'),
+      h('input', { class: 'input sm', placeholder: 'https://... or <svg ...>', value: c.img || '', oninput: e => { c.img = e.target.value; touch(); showPreview(); } }),
+      preview);
     return h('div', { class: 'card-row' },
       h('div', { class: 'card-row-head' },
         h('span', { class: 'card-num' }, i + 1),
-        h('button', { class: 'link-btn', type: 'button', onclick: e => { extras.classList.toggle('open'); e.currentTarget.textContent = extras.classList.contains('open') ? 'Hide extras' : 'Add wrong choices + explanation'; } },
-          extrasOpen ? 'Hide extras' : 'Add wrong choices + explanation'),
+        h('button', { class: 'link-btn', type: 'button', onclick: e => { extras.classList.toggle('open'); e.currentTarget.textContent = extras.classList.contains('open') ? 'Hide extras' : 'Add wrong choices, explanation, picture'; } },
+          extrasOpen ? 'Hide extras' : 'Add wrong choices, explanation, picture'),
         h('button', { class: 'icon-btn sm', type: 'button', 'aria-label': 'Delete question', onclick: () => { set.cards.splice(i, 1); touch(); renderList(); } }, icon('trash'))),
       h('div', { class: 'qa-grid' },
         h('div', {},
