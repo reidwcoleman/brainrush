@@ -1,4 +1,4 @@
-import { h, icon, coin, fmt, sleep } from '../ui.js';
+import { h, icon, coin, fmt, sleep, cardImg } from '../ui.js';
 import { S, getSet, levelInfo, mastery, dayStreak } from '../store.js';
 import { avatarSVG } from '../avatars.js';
 import { confetti } from '../fx.js';
@@ -54,6 +54,7 @@ export default function results(app, r) {
           if (!c) return null;
           return h('div', { class: 'review-item' },
             h('div', { class: 'review-q' }, c.q, n > 1 ? h('span', { class: 'tag' }, `missed ${n}x`) : null),
+            cardImg(c.img, 'review-img'),
             h('div', { class: 'review-a' }, icon('check'), c.a),
             c.explain ? h('div', { class: 'review-x' }, c.explain) : null);
         })) : null,

@@ -1,4 +1,4 @@
-import { h, icon, coin, fmt, sleep, confirmBox } from '../ui.js';
+import { h, icon, coin, fmt, sleep, confirmBox, cardImg } from '../ui.js';
 import { S, save, getSet, cardProgress, MASTERED_BOX, touchDay, levelInfo } from '../store.js';
 import { Session, checkTyped } from '../engine.js';
 import { gameTime } from '../games/index.js';
@@ -129,8 +129,10 @@ export default function play(app, { id, opts }) {
     if (q.isNew) tags.push(h('span', { class: 'tag new' }, 'New'));
     if (q.reversed) tags.push(h('span', { class: 'tag' }, 'Reverse'));
     if (q.kind === 'type') tags.push(h('span', { class: 'tag type' }, 'Type it from memory'));
-    const card = h('div', { class: 'q-card' },
+    const img = q.reversed ? null : cardImg(q.card.img);
+    const card = h('div', { class: `q-card ${img ? 'has-img' : ''}` },
       h('div', { class: 'q-top' }, h('div', { class: 'q-tags' }, tags), h('div', { class: 'q-set' }, set.title)),
+      img,
       h('div', { class: `q-text ${len > 120 ? 'xs' : len > 70 ? 'sm' : len < 20 ? 'lg' : ''}` }, q.prompt));
     let answerArea;
     if (q.kind === 'mc') {

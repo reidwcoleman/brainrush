@@ -1,6 +1,6 @@
 // Everything persists to localStorage under one key.
 import { SAMPLE_SETS } from './data.js';
-import { uid } from './ui.js';
+import { uid, imgSrc } from './ui.js';
 
 const KEY = 'brainrush.v1';
 const COLORS = ['purple', 'blue', 'green', 'orange', 'red', 'pink', 'teal'];
@@ -36,6 +36,7 @@ export function normalizeSet(s) {
         a: String(c.a).trim(),
         wrong: (c.wrong || []).map(w => String(w).trim()).filter(Boolean).slice(0, 3),
         explain: String(c.explain || '').trim(),
+        ...(imgSrc(c.img) ? { img: String(c.img).trim() } : {}),
       })),
   };
 }

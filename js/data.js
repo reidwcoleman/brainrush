@@ -1,5 +1,5 @@
 // Starter sets so a brand-new player can jump straight in.
-// Card shape: { q, a, wrong?: string[], explain?: string }
+// Card shape: { q, a, wrong?: string[], explain?: string, img?: string (image link or SVG code) }
 
 export const SAMPLE_SETS = [
   {

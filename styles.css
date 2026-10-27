@@ -320,6 +320,12 @@ button.pill:hover { background: rgba(255, 255, 255, 0.2); }
 .q-text.lg { font-size: 40px; }
 .q-text.sm { font-size: 24px; }
 .q-text.xs { font-size: 20px; }
+.q-img { display: block; width: 100%; max-height: 300px; object-fit: contain; margin: 12px auto 0; border-radius: 14px; background: #fff; border: 2px solid #f0ecfb; cursor: zoom-in; }
+.q-card.has-img .q-text { margin: 0; padding-top: 14px; }
+.review-img { width: 100%; max-width: 360px; max-height: 200px; object-fit: contain; border-radius: 10px; border: 2px solid #f0ecfb; cursor: zoom-in; }
+.img-zoom { display: block; width: 100%; max-height: 82vh; object-fit: contain; background: #fff; border-radius: 12px; cursor: zoom-out; }
+.img-preview { max-width: 100%; max-height: 160px; object-fit: contain; border-radius: 10px; border: 2px solid #f0ecfb; margin-top: 6px; }
+@media (max-width: 640px) { .q-img { max-height: 220px; } }
 .q-note { position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%); background: var(--yellow); color: var(--ink); padding: 6px 14px; border-radius: 99px; font-size: 14px; white-space: nowrap; box-shadow: 0 3px 0 var(--yellow-d); animation: popIn 0.3s; }
 .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ans {

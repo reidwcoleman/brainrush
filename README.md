@@ -28,12 +28,13 @@ Each game runs 40 to 50 seconds and pays out gold that scales with your upgrades
 
 ## Making quizzes
 
-- Type questions in the editor, with optional wrong answers and an explanation for each
+- Type questions in the editor, with optional wrong answers, an explanation and a picture for each
+- **Pictures and diagrams.** Any question can show an image above it (tap to zoom). In a quiz file, add an `img` field with an image link, a `data:image/...` URL, or raw SVG code (`"img": "<svg ...>...</svg>"`). SVG is shown as an image, so scripts inside it never run. Pictures travel with share links and downloads
 - Or paste a list, one per line:
   - `term - definition`, `term: definition`, or tab-separated (Quizlet/Sheets export)
   - `question | answer | wrong 1 | wrong 2 | wrong 3 | explanation`
 - Share a quiz as a link. The whole quiz is compressed into the URL, so there's no server and no account
-- Import quiz files (`.json`, `.csv`, `.txt`) or paste JSON. Besides Brainrush's own files it reads the common formats: arrays of `question`/`options`/`answer` (answer as text, letter or index), `term`/`definition` lists, Kahoot-style choices with a `correct` flag, and `{ "France": "Paris" }` dictionaries
+- Import quiz files (`.json`, `.csv`, `.txt`) or paste JSON. Besides Brainrush's own files it reads the common formats: arrays of `question`/`options`/`answer` (answer as text, letter or index), `term`/`definition` lists, Kahoot-style choices with a `correct` flag, `{ "France": "Paris" }` dictionaries, and `{ q, c: [choices], a: index, why }` quizzes
 - Download any quiz as a `.json` file
 
 Progress is saved in your browser (localStorage).

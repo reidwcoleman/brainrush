@@ -69,7 +69,7 @@ export class Session {
     const box = this.box(card);
     const st = this.state.get(card.id);
 
-    const canReverse = this.opts.both && !/\?\s*$/.test(card.q) && card.q.length <= 80;
+    const canReverse = this.opts.both && !card.img && !/\?\s*$/.test(card.q) && card.q.length <= 80;
     const reversed = canReverse && box >= 1 && Math.random() < 0.4;
     const prompt = reversed ? card.a : card.q;
     const answer = reversed ? card.q : card.a;
